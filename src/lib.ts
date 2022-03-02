@@ -1,4 +1,5 @@
 import * as fs from 'node:fs';
+import { link } from 'node:fs';
 import { extname, join } from 'node:path';
 import { parseMarkdownToAst, getMarkdownLinks } from './analyzers/ast.js';
 import { AnalyzeLinkPath, isLocalLink } from './analyzers/path.js';
@@ -30,10 +31,22 @@ export async function getInternalLinks(
   contentList.forEach((contents, index) => {
     const ast = parseMarkdownToAst(contents);
 
-    const internalLinks = getMarkdownLinks(ast)
+    const internalLinksRaw = getMarkdownLinks(ast)
       .filter(isLocalLink)
       .map(AnalyzeLinkPath(nodePaths[index]));
 
+    const internalLinks: AnalyzedLink[] = [];
+
+    internalLinksRaw.forEach(item => {
+      const title = item.html.substring(
+        item.html.indexOf("<title>") + 1, 
+        item.html.lastIndexOf("</title>")
+      );
+
+      item.title = title;
+      internalLinks.push(item);
+    });
+    
     analyzedLinks.push(...internalLinks);
   });
 
